@@ -1,0 +1,17 @@
+{
+  "name": "notesPhoenixFenya",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/yabelll/notesPhoenixFenya.git",
+  "author": "yabel",
+  "license": "MIT",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "gigachat": "^0.0.20",
+    "node-vk-bot-api": "^3.5.0",
+    "openai": "^6.39.0"
+  }
+}
