@@ -13,23 +13,16 @@ const THEORY_IMAGE_PATH3 = path.resolve(__dirname, '../../img/PB3.jpg');
 const photoAttachments = new Map();
 
 function menuKeyboard() {
-  return Markup
-    .keyboard([
-      'Теория',
-      'Тест',
-      'Ситуации',
-      'Задать вопрос',
-    ])
-    .oneTime();
+  return Markup.keyboard([
+    'Теория',
+    'Тест',
+    'Ситуации',
+    'Задать вопрос',
+  ]).oneTime();
 }
 
 function trueFalseKeyboard() {
-  return Markup
-    .keyboard([
-      'Верно',
-      'Неверно',
-    ])
-    .oneTime();
+  return Markup.keyboard(['Да', 'Нет']).oneTime();
 }
 
 function getImageContentType(imagePath) {
@@ -47,11 +40,11 @@ function getImageContentType(imagePath) {
 }
 
 function wait(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function postPhotoToUploadServer(uploadUrl, createForm) {
-    const delays = [0, 2000, 5000, 10000]; 
+  const delays = [0, 2000, 5000, 10000];
   let lastError;
 
   for (const delay of delays) {
@@ -72,7 +65,8 @@ async function postPhotoToUploadServer(uploadUrl, createForm) {
       lastError = error;
 
       const isTimeout = error.code === 'ECONNABORTED';
-      const isVkServerError = error.response && [500, 502, 503, 504].includes(error.response.status);
+      const isVkServerError =
+        error.response && [500, 502, 503, 504].includes(error.response.status);
 
       if (!isTimeout && !isVkServerError) {
         throw error;
@@ -95,10 +89,13 @@ async function uploadPhotoForMessage(ctx, imagePath) {
   }
 
   const peerId = ctx.message.peer_id || ctx.message.user_id;
-  const { response: uploadServer } = await ctx.bot.api('photos.getMessagesUploadServer', {
-    peer_id: peerId,
-    access_token: ctx.bot.settings.token,
-  });
+  const { response: uploadServer } = await ctx.bot.api(
+    'photos.getMessagesUploadServer',
+    {
+      peer_id: peerId,
+      access_token: ctx.bot.settings.token,
+    }
+  );
   const uploadUrl = uploadServer.upload_url;
 
   if (!uploadUrl) {
@@ -116,18 +113,24 @@ async function uploadPhotoForMessage(ctx, imagePath) {
     return form;
   };
 
-  const { data: uploadResult } = await postPhotoToUploadServer(uploadUrl, createForm);
+  const { data: uploadResult } = await postPhotoToUploadServer(
+    uploadUrl,
+    createForm
+  );
 
   if (!uploadResult.photo) {
     throw new Error(`VK не принял фото: ${JSON.stringify(uploadResult)}`);
   }
 
-  const { response: savedPhotos } = await ctx.bot.api('photos.saveMessagesPhoto', {
-    photo: uploadResult.photo,
-    server: uploadResult.server,
-    hash: uploadResult.hash,
-    access_token: ctx.bot.settings.token,
-  });
+  const { response: savedPhotos } = await ctx.bot.api(
+    'photos.saveMessagesPhoto',
+    {
+      photo: uploadResult.photo,
+      server: uploadResult.server,
+      hash: uploadResult.hash,
+      access_token: ctx.bot.settings.token,
+    }
+  );
   const photo = savedPhotos[0];
 
   const photoAttachment = `photo${photo.owner_id}_${photo.id}${photo.access_key ? `_${photo.access_key}` : ''}`;
@@ -156,20 +159,31 @@ async function sendTheoryBlock(ctx, requirements, imagePath, question) {
   ctx.scene.next();
 }
 
-async function replyToTrueFalseAnswer(ctx, correctAnswer, correctMessage, incorrectMessage) {
-  const userAnswer = (ctx.message.text || ctx.message.body || '').trim().toLowerCase();
+async function replyToTrueFalseAnswer(
+  ctx,
+  correctAnswer,
+  correctMessage,
+  incorrectMessage
+) {
+  const userAnswer = (ctx.message.text || ctx.message.body || '')
+    .trim()
+    .toLowerCase();
 
   if (userAnswer === correctAnswer.toLowerCase()) {
     await ctx.reply(correctMessage);
     return true;
   }
 
-  if (userAnswer === 'верно' || userAnswer === 'неверно') {
+  if (userAnswer === 'да' || userAnswer === 'нет') {
     await ctx.reply(incorrectMessage);
     return true;
   }
 
-  await ctx.reply('Выбери один из вариантов: Верно или Неверно.', null, trueFalseKeyboard());
+  await ctx.reply(
+    'Выбери один из вариантов: Да или Нет.',
+    null,
+    trueFalseKeyboard()
+  );
   return false;
 }
 
@@ -236,7 +250,8 @@ const theoryPrompt3 = `
 Теперь сгенерируй свои 3 правила по пожарной безопасности, используя этот стиль и структуру.
 `;
 
-const theoryScene = new Scene('theory',
+const theoryScene = new Scene(
+  'theory',
   async (ctx) => {
     try {
       await ctx.reply('Секунду, сейчас достану заметку...');
@@ -244,89 +259,114 @@ const theoryScene = new Scene('theory',
         ctx,
         theoryPrompt1,
         THEORY_IMAGE_PATH1,
-        'Если ты на 4 этаже, можно ли использовать лифт для спуска?',
+        'Можно ли оставить зарядку в розетке, когда уходишь из дома?'
       );
     } catch (error) {
       console.error(error);
 
       ctx.scene.leave();
-      await ctx.reply('Не получилось получить теорию от нейросети. Попробуй еще раз', null, menuKeyboard());
+      await ctx.reply(
+        'Не получилось получить теорию от нейросети. Попробуй еще раз',
+        null,
+        menuKeyboard()
+      );
     }
   },
   async (ctx) => {
     try {
       const shouldContinue = await replyToTrueFalseAnswer(
         ctx,
-        'Неверно',
-        'Правильно! При пожаре лифтом пользоваться нельзя даже с 1 этажа: безопаснее выходить по маршруту эвакуации.',
-        'Неверно. При пожаре лифтом пользоваться нельзя: он может остановиться или заполниться дымом.',
+        'Нет',
+        'Правильно! Зарядку лучше отключать от розетки, когда уходишь из дома.',
+        'Неверно. Оставлять зарядку в розетке без присмотра небезопасно: её лучше отключать.'
       );
 
       if (!shouldContinue) {
         return;
       }
-
+      await ctx.reply('Достаю следующую заметку...');
       await sendTheoryBlock(
         ctx,
         theoryPrompt2,
         THEORY_IMAGE_PATH2,
-        'Можно ли оставить зарядку в розетке, когда уходишь из дома?',
+        'Можно ли позвонить сначала в 112, а потом сказать взрослым?'
       );
     } catch (error) {
       console.error(error);
 
       ctx.scene.leave();
-      await ctx.reply('Не получилось получить теорию от нейросети. Попробуй еще раз', null, menuKeyboard());
+      await ctx.reply(
+        'Не получилось получить теорию от нейросети. Попробуй еще раз',
+        null,
+        menuKeyboard()
+      );
     }
   },
   async (ctx) => {
     try {
       const shouldContinue = await replyToTrueFalseAnswer(
         ctx,
-        'Неверно',
-        'Правильно! Зарядку лучше отключать от розетки, когда уходишь из дома.',
-        'Неверно. Оставлять зарядку в розетке без присмотра небезопасно: её лучше отключать.',
+        'Да',
+        'Правильно! Если есть пожар или угроза людям, нужно сразу звонить 112 или 101, а затем сообщить взрослым.',
+        'Неверно. При пожаре важно сразу вызвать 112 или 101, а потом сообщить взрослым.'
       );
 
       if (!shouldContinue) {
         return;
       }
-
+      await ctx.reply('Достаю последнюю заметку...');
       await sendTheoryBlock(
         ctx,
         theoryPrompt3,
         THEORY_IMAGE_PATH3,
-        '3. Можно ли позвонить сначала в 112, а потом сказать взрослым?',
+        'Если ты на 4 этаже, можно ли использовать лифт для спуска?'
       );
     } catch (error) {
       console.error(error);
 
       ctx.scene.leave();
-      await ctx.reply('Не получилось получить теорию от нейросети. Попробуй еще раз', null, menuKeyboard());
+      await ctx.reply(
+        'Не получилось получить теорию от нейросети. Попробуй еще раз',
+        null,
+        menuKeyboard()
+      );
     }
   },
   async (ctx) => {
     try {
       const shouldContinue = await replyToTrueFalseAnswer(
         ctx,
-        'Верно',
-        'Правильно! Если есть пожар или угроза людям, нужно сразу звонить 112 или 101, а затем сообщить взрослым.',
-        'Неверно. При пожаре важно сразу вызвать 112 или 101, а потом сообщить взрослым.',
+        'Нет',
+        'Правильно! При пожаре лифтом пользоваться нельзя даже с 1 этажа: безопаснее выходить по маршруту эвакуации.',
+        'Неверно. При пожаре лифтом пользоваться нельзя: он может остановиться или заполниться дымом.'
       );
 
       if (!shouldContinue) {
         return;
       }
 
-      await replyWithOptionalPhoto(ctx, 'Ты полностью изучил теорию! Держи из заметок Фени памятку «Пожарная безопасность». Прочитайте её один раз сейчас — чтобы в экстренной ситуации действовать на автомате, без паники и ошибок.', THEORY_IMAGE_PATH);
+      await replyWithOptionalPhoto(
+        ctx,
+        'Ты полностью изучил теорию! Держи из заметок Фени памятку «Пожарная безопасность». Прочитайте её один раз сейчас — чтобы в экстренной ситуации действовать на автомате, без паники и ошибок.',
+        THEORY_IMAGE_PATH
+      );
 
       ctx.scene.leave();
-      await ctx.reply('Продолжим изучение пожарной безопасности? Выбирай категорию и действуй!', null, menuKeyboard());
+      await ctx.reply(
+        'Продолжим изучение пожарной безопасности? Выбирай категорию и действуй!',
+        null,
+        menuKeyboard()
+      );
     } catch (error) {
       console.error(error);
 
       ctx.scene.leave();
-      await ctx.reply('Не получилось получить теорию от нейросети. Попробуй еще раз', null, menuKeyboard());
+      await ctx.reply(
+        'Не получилось получить теорию от нейросети. Попробуй еще раз',
+        null,
+        menuKeyboard()
+      );
     }
-  });
+  }
+);
 module.exports = theoryScene;

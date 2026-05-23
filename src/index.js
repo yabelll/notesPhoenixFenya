@@ -7,10 +7,11 @@ const Stage = require('node-vk-bot-api/lib/stage');
 const theoryScene = require('./scene/theory');
 const questionScene = require('./scene/question');
 const situationScene = require('./scene/situation');
+const testScene = require('./scene/test');
 
 const bot = new VkBot(process.env.TOKEN);
 const session = new Session();
-const stage = new Stage(theoryScene, questionScene, situationScene);
+const stage = new Stage(theoryScene, questionScene, situationScene, testScene);
 const startedAt = Math.floor(Date.now() / 1000);
 const handledMessages = new Set();
 
@@ -23,7 +24,9 @@ function getMessageKey(ctx) {
     ctx.message.conversation_message_id,
     ctx.message.date,
     ctx.message.text || ctx.message.body,
-  ].filter(Boolean).join(':');
+  ]
+    .filter(Boolean)
+    .join(':');
 }
 
 bot.use((ctx, next) => {
@@ -54,7 +57,8 @@ bot.use(session.middleware());
 bot.use(stage.middleware());
 
 bot.command('Начать', (ctx) => {
-  ctx.reply(`Привет! Я — Феня. Феникс, который знает об огне всё. Веду «Заметки Феникса Фени».
+  ctx.reply(
+    `Привет! Я — Феня. Феникс, который знает об огне всё. Веду «Заметки Феникса Фени».
 
 📓 Этот чат-бот — моя личная тетрадь с самыми важными правилами и опасными ситуациями, которые я сам прошёл (пару раз даже выгорал, но это другая история).
 Делюсь заметками, чтобы ты знал, как дружить с огнём и не пострадать.
@@ -63,14 +67,10 @@ bot.command('Начать', (ctx) => {
 📖 Теория — мои записи: чётко и без воды
 🧪 Тесты — проверь, хорошо ли ты усвоил мою информацию 
 🎭 Ситуации — реальные случаи из моей практики, которые ты можешь прожить сам 
-❓ Задать вопрос — если хочешь заглянуть в ещё не открытую заметку`, null, Markup
-    .keyboard([
-      'Теория',
-      'Тест',
-      'Ситуации',
-      'Задать вопрос'
-    ])
-    .oneTime());
+❓ Задать вопрос — если хочешь заглянуть в ещё не открытую заметку`,
+    null,
+    Markup.keyboard(['Теория', 'Тест', 'Ситуации', 'Задать вопрос']).oneTime()
+  );
 });
 
 bot.command('Теория', (ctx) => {
@@ -83,6 +83,10 @@ bot.command('Задать вопрос', (ctx) => {
 
 bot.command('Ситуации', (ctx) => {
   ctx.scene.enter('situation');
+});
+
+bot.command('Тест', (ctx) => {
+  ctx.scene.enter('test');
 });
 
 bot.startPolling();

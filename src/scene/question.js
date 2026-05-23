@@ -3,14 +3,12 @@ const Markup = require('node-vk-bot-api/lib/markup');
 const { askAi } = require('../ai');
 
 function menuKeyboard() {
-  return Markup
-    .keyboard([
-      'Теория',
-      'Тест',
-      'Ситуации',
-      'Задать вопрос',
-    ])
-    .oneTime();
+  return Markup.keyboard([
+    'Теория',
+    'Тест',
+    'Ситуации',
+    'Задать вопрос',
+  ]).oneTime();
 }
 
 const questionRequirements = `Промт для вопросов
@@ -38,7 +36,8 @@ const questionRequirements = `Промт для вопросов
 Ответ: «Это спорная ситуация, потому что вода проводит ток и может убить. Я не могу дать универсальный ответ. Обязательно обсуди это со взрослым или инструктором по пожарной безопасности. Моя рекомендация: в первую очередь обесточь прибор, если это безопасно, и вызови 101/112. Не действуй наугад.»
 Теперь жди вопроса от пользователя и отвечай строго по этим правилам.`;
 
-const questionScene = new Scene('question',
+const questionScene = new Scene(
+  'question',
   async (ctx) => {
     ctx.scene.next();
     await ctx.reply('Напиши свой вопрос по пожарной безопасности.');
@@ -51,13 +50,22 @@ const questionScene = new Scene('question',
 
       await ctx.reply(answer);
       ctx.scene.leave();
-      await ctx.reply('Продолжим изучение пожарной безопасности? Выбирай категорию и действуй!', null, menuKeyboard());
+      await ctx.reply(
+        'Продолжим изучение пожарной безопасности? Выбирай категорию и действуй!',
+        null,
+        menuKeyboard()
+      );
     } catch (error) {
       console.error(error);
 
       ctx.scene.leave();
-      await ctx.reply('Не получилось получить ответ от нейросети. Проверь AI_API_KEY и AI_BASE_URL в .env.', null, menuKeyboard());
+      await ctx.reply(
+        'Не получилось получить ответ от нейросети. Проверь AI_API_KEY и AI_BASE_URL в .env.',
+        null,
+        menuKeyboard()
+      );
     }
-  });
+  }
+);
 
 module.exports = questionScene;

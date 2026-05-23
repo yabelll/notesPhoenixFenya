@@ -6,12 +6,22 @@
   "author": "yabel",
   "license": "MIT",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "lint": "eslint src --ext .js",
+    "lint:fix": "eslint src --ext .js --fix"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
     "gigachat": "^0.0.20",
     "node-vk-bot-api": "^3.5.0",
     "openai": "^6.39.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.4.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3"
   }
 }

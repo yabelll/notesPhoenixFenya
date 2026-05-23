@@ -9,7 +9,8 @@ const client = new OpenAI({
   baseURL,
 });
 
-const defaultRequirements = 'Ты специалист по пожарной безопасности. Отвечай кратко, понятно и по делу на русском языке.';
+const defaultRequirements =
+  'Ты специалист по пожарной безопасности. Отвечай кратко, понятно и по делу на русском языке.';
 
 async function askAi(question, requirements = defaultRequirements) {
   if (!baseURL && !apiKey) {
