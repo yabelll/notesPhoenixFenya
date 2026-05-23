@@ -18,7 +18,16 @@ function menuKeyboard() {
       'Теория',
       'Тест',
       'Ситуации',
-      'Задай вопрос',
+      'Задать вопрос',
+    ])
+    .oneTime();
+}
+
+function trueFalseKeyboard() {
+  return Markup
+    .keyboard([
+      'Верно',
+      'Неверно',
     ])
     .oneTime();
 }
@@ -42,7 +51,7 @@ function wait(ms) {
 }
 
 async function postPhotoToUploadServer(uploadUrl, createForm) {
-  const delays = [0, 1000, 2500];
+    const delays = [0, 2000, 5000, 10000]; 
   let lastError;
 
   for (const delay of delays) {
@@ -62,7 +71,10 @@ async function postPhotoToUploadServer(uploadUrl, createForm) {
     } catch (error) {
       lastError = error;
 
-      if (!error.response || ![500, 502, 503, 504].includes(error.response.status)) {
+      const isTimeout = error.code === 'ECONNABORTED';
+      const isVkServerError = error.response && [500, 502, 503, 504].includes(error.response.status);
+
+      if (!isTimeout && !isVkServerError) {
         throw error;
       }
     }
@@ -125,22 +137,47 @@ async function uploadPhotoForMessage(ctx, imagePath) {
   return photoAttachment;
 }
 
-async function sendAnswerWithPhoto(ctx, answer, imagePath) {
+async function replyWithOptionalPhoto(ctx, message, imagePath) {
   try {
     const photoAttachment = await uploadPhotoForMessage(ctx, imagePath);
 
-    await ctx.reply(answer, photoAttachment);
+    await ctx.reply(message, photoAttachment);
   } catch (error) {
     console.error(error);
-    await ctx.reply(answer);
+    await ctx.reply(message);
   }
+}
+
+async function sendTheoryBlock(ctx, requirements, imagePath, question) {
+  const answer = await askAiByRequirements(requirements);
+
+  await replyWithOptionalPhoto(ctx, answer, imagePath);
+  await ctx.reply(question, null, trueFalseKeyboard());
+  ctx.scene.next();
+}
+
+async function replyToTrueFalseAnswer(ctx, correctAnswer, correctMessage, incorrectMessage) {
+  const userAnswer = (ctx.message.text || ctx.message.body || '').trim().toLowerCase();
+
+  if (userAnswer === correctAnswer.toLowerCase()) {
+    await ctx.reply(correctMessage);
+    return true;
+  }
+
+  if (userAnswer === 'верно' || userAnswer === 'неверно') {
+    await ctx.reply(incorrectMessage);
+    return true;
+  }
+
+  await ctx.reply('Выбери один из вариантов: Верно или Неверно.', null, trueFalseKeyboard());
+  return false;
 }
 
 const theoryPrompt1 = `
 Ты — эксперт по технике пожарной безопасности и методист по обучению детей и взрослых.
 Задача: Выдай теорию по теме «Техника пожарной безопасности» строго по шаблону без лишних фраз, который я приведу ниже.
 Требования к ответу:
-1. Используй мой шаблон: каждый пункт начинается с названия правила и краткого объяснения (как в моём примере). Больше ничего: только пункты и краткое объяснение!
+1. Используй мой шаблон: каждый пункт начинается со смайлика (в каждом пункте разные смайлики) с названием правила и краткого объяснения (как в моём примере). Больше ничего: только пункты и краткое объяснение!
 2. Количество правил: ровно 3
 3. Тон: чёткий, понятный, без воды, с примерами действий. Запрещено использовать * (звездочки).
 4. Не выдавай опасные, экстремистские и медицинские инструкции.
@@ -161,7 +198,7 @@ const theoryPrompt2 = `
 Ты — эксперт по технике пожарной безопасности и методист по обучению детей и взрослых.
 Задача: Выдай теорию по теме «Техника пожарной безопасности» строго по шаблону без лишних фраз, который я приведу ниже.
 Требования к ответу:
-1. Используй мой шаблон: каждый пункт начинается с названия правила и краткого объяснения (как в моём примере). Больше ничего: только пункты и краткое объяснение!
+1. Используй мой шаблон: каждый пункт начинается со смайлика (в каждом пункте разные смайлики) с названием правила (в каждом пункте разные смайлики) и краткого объяснения (как в моём примере). Больше ничего: только пункты и краткое объяснение!
 2. Количество правил: ровно 3 
 3. Тон: чёткий, понятный, без воды, с примерами действий. Запрещено использовать * (звездочки).
 4. Не выдавай опасные, экстремистские и медицинские инструкции.
@@ -182,7 +219,7 @@ const theoryPrompt3 = `
 Ты — эксперт по технике пожарной безопасности и методист по обучению детей и взрослых.
 Задача: Выдай теорию по теме «Техника пожарной безопасности» строго по шаблону без лишних фраз, который я приведу ниже.
 Требования к ответу:
-1. Используй мой шаблон: каждый пункт начинается с названия правила и краткого объяснения (как в моём примере). Больше ничего: только пункты и краткое объяснение!
+1. Используй мой шаблон: каждый пункт начинается со смайлика с названием правила и краткого объяснения (как в моём примере). Больше ничего: только пункты и краткое объяснение!
 2. Количество правил: ровно 3 
 3. Тон: чёткий, понятный, без воды, с примерами действий. Запрещено использовать * (звездочки).
 4. Не выдавай опасные, экстремистские и медицинские инструкции.
@@ -202,19 +239,86 @@ const theoryPrompt3 = `
 const theoryScene = new Scene('theory',
   async (ctx) => {
     try {
-        await ctx.reply('Секунду, сейчас достану заметку...')
+      await ctx.reply('Секунду, сейчас достану заметку...');
+      await sendTheoryBlock(
+        ctx,
+        theoryPrompt1,
+        THEORY_IMAGE_PATH1,
+        'Если ты на 4 этаже, можно ли использовать лифт для спуска?',
+      );
+    } catch (error) {
+      console.error(error);
 
-      const answer1 = await askAiByRequirements(theoryPrompt1);
+      ctx.scene.leave();
+      await ctx.reply('Не получилось получить теорию от нейросети. Попробуй еще раз', null, menuKeyboard());
+    }
+  },
+  async (ctx) => {
+    try {
+      const shouldContinue = await replyToTrueFalseAnswer(
+        ctx,
+        'Неверно',
+        'Правильно! При пожаре лифтом пользоваться нельзя даже с 1 этажа: безопаснее выходить по маршруту эвакуации.',
+        'Неверно. При пожаре лифтом пользоваться нельзя: он может остановиться или заполниться дымом.',
+      );
 
-      await sendAnswerWithPhoto(ctx, answer1, THEORY_IMAGE_PATH1);
+      if (!shouldContinue) {
+        return;
+      }
 
-      const answer2 = await askAiByRequirements(theoryPrompt2);
+      await sendTheoryBlock(
+        ctx,
+        theoryPrompt2,
+        THEORY_IMAGE_PATH2,
+        'Можно ли оставить зарядку в розетке, когда уходишь из дома?',
+      );
+    } catch (error) {
+      console.error(error);
 
-      await sendAnswerWithPhoto(ctx, answer2, THEORY_IMAGE_PATH2);
+      ctx.scene.leave();
+      await ctx.reply('Не получилось получить теорию от нейросети. Попробуй еще раз', null, menuKeyboard());
+    }
+  },
+  async (ctx) => {
+    try {
+      const shouldContinue = await replyToTrueFalseAnswer(
+        ctx,
+        'Неверно',
+        'Правильно! Зарядку лучше отключать от розетки, когда уходишь из дома.',
+        'Неверно. Оставлять зарядку в розетке без присмотра небезопасно: её лучше отключать.',
+      );
 
-      const answer3 = await askAiByRequirements(theoryPrompt3);
+      if (!shouldContinue) {
+        return;
+      }
 
-      await sendAnswerWithPhoto(ctx, answer3, THEORY_IMAGE_PATH3);
+      await sendTheoryBlock(
+        ctx,
+        theoryPrompt3,
+        THEORY_IMAGE_PATH3,
+        '3. Можно ли позвонить сначала в 112, а потом сказать взрослым?',
+      );
+    } catch (error) {
+      console.error(error);
+
+      ctx.scene.leave();
+      await ctx.reply('Не получилось получить теорию от нейросети. Попробуй еще раз', null, menuKeyboard());
+    }
+  },
+  async (ctx) => {
+    try {
+      const shouldContinue = await replyToTrueFalseAnswer(
+        ctx,
+        'Верно',
+        'Правильно! Если есть пожар или угроза людям, нужно сразу звонить 112 или 101, а затем сообщить взрослым.',
+        'Неверно. При пожаре важно сразу вызвать 112 или 101, а потом сообщить взрослым.',
+      );
+
+      if (!shouldContinue) {
+        return;
+      }
+
+      await replyWithOptionalPhoto(ctx, 'Ты полностью изучил теорию! Держи из заметок Фени памятку «Пожарная безопасность». Прочитайте её один раз сейчас — чтобы в экстренной ситуации действовать на автомате, без паники и ошибок.', THEORY_IMAGE_PATH);
 
       ctx.scene.leave();
       await ctx.reply('Продолжим изучение пожарной безопасности? Выбирай категорию и действуй!', null, menuKeyboard());
@@ -222,7 +326,7 @@ const theoryScene = new Scene('theory',
       console.error(error);
 
       ctx.scene.leave();
-      await ctx.reply('Не получилось получить теорию от нейросети. Проверь AI_API_KEY и AI_BASE_URL в .env.', null, menuKeyboard());
+      await ctx.reply('Не получилось получить теорию от нейросети. Попробуй еще раз', null, menuKeyboard());
     }
   });
 module.exports = theoryScene;

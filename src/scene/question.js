@@ -8,7 +8,7 @@ function menuKeyboard() {
       'Теория',
       'Тест',
       'Ситуации',
-      'Задай вопрос',
+      'Задать вопрос',
     ])
     .oneTime();
 }
@@ -39,9 +39,9 @@ const questionRequirements = `Промт для вопросов
 Теперь жди вопроса от пользователя и отвечай строго по этим правилам.`;
 
 const questionScene = new Scene('question',
-  (ctx) => {
+  async (ctx) => {
     ctx.scene.next();
-    ctx.reply('Напиши свой вопрос по пожарной безопасности.');
+    await ctx.reply('Напиши свой вопрос по пожарной безопасности.');
   },
   async (ctx) => {
     const question = ctx.message.text || ctx.message.body;
@@ -49,14 +49,14 @@ const questionScene = new Scene('question',
     try {
       const answer = await askAi(question, questionRequirements);
 
-      ctx.reply(answer, null);
+      await ctx.reply(answer);
       ctx.scene.leave();
-      ctx.reply('Продолжим изучение пожарной безопасности? Выбирай категорию и действуй!', null, menuKeyboard());
+      await ctx.reply('Продолжим изучение пожарной безопасности? Выбирай категорию и действуй!', null, menuKeyboard());
     } catch (error) {
       console.error(error);
 
       ctx.scene.leave();
-      ctx.reply('Не получилось получить ответ от нейросети. Проверь AI_API_KEY и AI_BASE_URL в .env.', null, menuKeyboard());
+      await ctx.reply('Не получилось получить ответ от нейросети. Проверь AI_API_KEY и AI_BASE_URL в .env.', null, menuKeyboard());
     }
   });
 

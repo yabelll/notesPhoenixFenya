@@ -68,7 +68,7 @@ bot.command('Начать', (ctx) => {
       'Теория',
       'Тест',
       'Ситуации',
-      'Задай вопрос'
+      'Задать вопрос'
     ])
     .oneTime());
 });
@@ -77,7 +77,7 @@ bot.command('Теория', (ctx) => {
   ctx.scene.enter('theory');
 });
 
-bot.command('Задай вопрос', (ctx) => {
+bot.command('Задать вопрос', (ctx) => {
   ctx.scene.enter('question');
 });
 
