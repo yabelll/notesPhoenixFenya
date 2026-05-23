@@ -9,7 +9,9 @@ const client = new OpenAI({
   baseURL,
 });
 
-async function askAi(question) {
+const defaultRequirements = 'Ты специалист по пожарной безопасности. Отвечай кратко, понятно и по делу на русском языке.';
+
+async function askAi(question, requirements = defaultRequirements) {
   if (!baseURL && !apiKey) {
     throw new Error('Добавь AI_API_KEY в .env');
   }
@@ -19,7 +21,7 @@ async function askAi(question) {
     messages: [
       {
         role: 'system',
-        content: 'Ты специалист по пожарной безопасности. Отвечай кратко, понятно и по делу на русском языке.',
+        content: requirements,
       },
       {
         role: 'user',
@@ -31,6 +33,11 @@ async function askAi(question) {
   return completion.choices[0].message.content.trim();
 }
 
+function askAiByRequirements(requirements) {
+  return askAi('Сгенерируй ответ строго по требованиям.', requirements);
+}
+
 module.exports = {
   askAi,
+  askAiByRequirements,
 };

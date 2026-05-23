@@ -6,10 +6,11 @@ const Session = require('node-vk-bot-api/lib/session');
 const Stage = require('node-vk-bot-api/lib/stage');
 const theoryScene = require('./scene/theory');
 const questionScene = require('./scene/question');
+const situationScene = require('./scene/situation');
 
 const bot = new VkBot(process.env.TOKEN);
 const session = new Session();
-const stage = new Stage(theoryScene, questionScene);
+const stage = new Stage(theoryScene, questionScene, situationScene);
 const startedAt = Math.floor(Date.now() / 1000);
 const handledMessages = new Set();
 
@@ -53,7 +54,16 @@ bot.use(session.middleware());
 bot.use(stage.middleware());
 
 bot.command('Начать', (ctx) => {
-  ctx.reply('Какое то приветствие и выбор категории', null, Markup
+  ctx.reply(`Привет! Я — Феня. Феникс, который знает об огне всё. Веду «Заметки Феникса Фени».
+
+📓 Этот чат-бот — моя личная тетрадь с самыми важными правилами и опасными ситуациями, которые я сам прошёл (пару раз даже выгорал, но это другая история).
+Делюсь заметками, чтобы ты знал, как дружить с огнём и не пострадать.
+
+Что лежит в моих заметках?
+📖 Теория — мои записи: чётко и без воды
+🧪 Тесты — проверь, хорошо ли ты усвоил мою информацию 
+🎭 Ситуации — реальные случаи из моей практики, которые ты можешь прожить сам 
+❓ Задать вопрос — если хочешь заглянуть в ещё не открытую заметку`, null, Markup
     .keyboard([
       'Теория',
       'Тест',
@@ -69,6 +79,10 @@ bot.command('Теория', (ctx) => {
 
 bot.command('Задай вопрос', (ctx) => {
   ctx.scene.enter('question');
+});
+
+bot.command('Ситуации', (ctx) => {
+  ctx.scene.enter('situation');
 });
 
 bot.startPolling();
