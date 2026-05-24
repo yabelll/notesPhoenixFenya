@@ -43,6 +43,24 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function logPhotoWarning(error) {
+  const apiCode = error?.response?.error_code;
+  const apiMessage = error?.response?.error_msg;
+  const status = error?.response?.status;
+
+  if (apiCode) {
+    console.warn(`VK photo skipped: ${apiCode} ${apiMessage}`);
+    return;
+  }
+
+  if (status) {
+    console.warn(`VK photo skipped: HTTP ${status}`);
+    return;
+  }
+
+  console.warn(`VK photo skipped: ${error?.message || error}`);
+}
+
 async function postPhotoToUploadServer(uploadUrl, createForm) {
   const delays = [0, 2000, 5000, 10000];
   let lastError;
@@ -119,6 +137,10 @@ async function uploadPhotoForMessage(ctx, imagePath) {
   );
 
   if (!uploadResult.photo) {
+    return null;
+  }
+
+  if (!uploadResult.photo) {
     throw new Error(`VK не принял фото: ${JSON.stringify(uploadResult)}`);
   }
 
@@ -133,6 +155,10 @@ async function uploadPhotoForMessage(ctx, imagePath) {
   );
   const photo = savedPhotos[0];
 
+  if (!photo) {
+    return null;
+  }
+
   const photoAttachment = `photo${photo.owner_id}_${photo.id}${photo.access_key ? `_${photo.access_key}` : ''}`;
 
   photoAttachments.set(resolvedImagePath, photoAttachment);
@@ -144,11 +170,15 @@ async function replyWithOptionalPhoto(ctx, message, imagePath) {
   try {
     const photoAttachment = await uploadPhotoForMessage(ctx, imagePath);
 
-    await ctx.reply(message, photoAttachment);
+    if (photoAttachment) {
+      await ctx.reply(message, photoAttachment);
+      return;
+    }
   } catch (error) {
-    console.error(error);
-    await ctx.reply(message);
+    logPhotoWarning(error);
   }
+
+  await ctx.reply(message);
 }
 
 async function sendTheoryBlock(ctx, requirements, imagePath, question) {
@@ -367,6 +397,14 @@ const theoryScene = new Scene(
         menuKeyboard()
       );
     }
+  },
+  async (ctx) => {
+    ctx.scene.leave();
+    await ctx.reply(
+      'Феня задумалась и допустила ошибку. Запусти раздел заново!',
+      null,
+      menuKeyboard()
+    );
   }
 );
 module.exports = theoryScene;
