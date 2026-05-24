@@ -207,6 +207,7 @@ const situationScene = new Scene(
   async (ctx) => {
     try {
       const answerUser = ctx.message.text || ctx.message.body;
+      await ctx.reply('Феня проверяет...');
       const answer = await askAi(answerUser, questionRequirements1);
 
       ctx.scene.next();
@@ -216,7 +217,7 @@ const situationScene = new Scene(
       console.error(error);
       ctx.scene.leave();
       await ctx.reply(
-        'Не получилось проверить ответ. Попробуй ещё раз позже.',
+        'Феня задумалась и допустила ошибку. Запусти раздел с ситуациями заново!',
         null,
         menuKeyboard()
       );
@@ -225,6 +226,7 @@ const situationScene = new Scene(
   async (ctx) => {
     try {
       const answerUser = ctx.message.text || ctx.message.body;
+      await ctx.reply('Феня проверяет...');
       const answer = await askAi(answerUser, questionRequirements2);
 
       ctx.scene.next();
@@ -234,7 +236,7 @@ const situationScene = new Scene(
       console.error(error);
       ctx.scene.leave();
       await ctx.reply(
-        'Не получилось проверить ответ. Попробуй ещё раз позже.',
+        'Феня задумалась и допустила ошибку. Запусти раздел с ситуациями заново!',
         null,
         menuKeyboard()
       );
@@ -243,12 +245,13 @@ const situationScene = new Scene(
   async (ctx) => {
     try {
       const answerUser = ctx.message.text || ctx.message.body;
+      await ctx.reply('Феня проверяет...');
       const answer = await askAi(answerUser, questionRequirements3);
 
       ctx.scene.leave();
       await ctx.reply(answer);
       await ctx.reply(
-        'Продолжим изучение пожарной безопасности? Выбирай категорию и действуй!',
+        '🔥Продолжим изучение пожарной безопасности? Выбирай категорию и действуй!',
         null,
         menuKeyboard()
       );
@@ -256,7 +259,7 @@ const situationScene = new Scene(
       console.error(error);
       ctx.scene.leave();
       await ctx.reply(
-        'Не получилось проверить ответ. Попробуй ещё раз позже.',
+        'Феня задумалась и допустила ошибку. Запусти раздел с ситуациями заново!',
         null,
         menuKeyboard()
       );

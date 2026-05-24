@@ -14,6 +14,72 @@ const session = new Session();
 const stage = new Stage(theoryScene, questionScene, situationScene, testScene);
 const startedAt = Math.floor(Date.now() / 1000);
 const handledMessages = new Set();
+const RETRYABLE_NETWORK_ERRORS = new Set([
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'ECONNABORTED',
+  'EAI_AGAIN',
+  'ENOTFOUND',
+]);
+const IGNORED_REPLY_API_ERRORS = new Set([901]);
+
+function delay(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function isRetryableNetworkError(error) {
+  return RETRYABLE_NETWORK_ERRORS.has(error?.code);
+}
+
+function isIgnoredReplyError(error) {
+  return IGNORED_REPLY_API_ERRORS.has(error?.response?.error_code);
+}
+
+function logReplyError(error) {
+  const apiErrorCode = error?.response?.error_code;
+  const apiErrorMessage = error?.response?.error_msg;
+
+  if (apiErrorCode) {
+    console.warn(`VK reply failed: ${apiErrorCode} ${apiErrorMessage}`);
+    return;
+  }
+
+  console.warn(`VK reply failed: ${error?.code || error?.message || error}`);
+}
+
+function logUnhandledError(error) {
+  console.error('Unhandled bot error:', error);
+}
+
+process.on('unhandledRejection', logUnhandledError);
+process.on('uncaughtException', logUnhandledError);
+
+async function retryReply(reply, args, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await reply(...args);
+    } catch (error) {
+      if (isIgnoredReplyError(error)) {
+        logReplyError(error);
+        return null;
+      }
+
+      if (!isRetryableNetworkError(error)) {
+        logReplyError(error);
+        return null;
+      }
+
+      if (attempt === retries) {
+        logReplyError(error);
+        return null;
+      }
+
+      await delay(500 * (attempt + 1));
+    }
+  }
+}
 
 function getMessageKey(ctx) {
   return [
@@ -53,14 +119,22 @@ bot.use((ctx, next) => {
   next();
 });
 
+bot.use((ctx, next) => {
+  const originalReply = ctx.reply.bind(ctx);
+
+  ctx.reply = (...args) => retryReply(originalReply, args);
+
+  next();
+});
+
 bot.use(session.middleware());
 bot.use(stage.middleware());
 
 bot.command('Начать', (ctx) => {
   ctx.reply(
-    `Привет! Я — Феня. Феникс, который знает об огне всё. Веду «Заметки Феникса Фени».
+    `Привет! Я — Феня. Феникс, который знает об огне всё.
 
-📓 Этот чат-бот — моя личная тетрадь с самыми важными правилами и опасными ситуациями, которые я сам прошёл (пару раз даже выгорал, но это другая история).
+📓 Этот чат-бот — мои личные заметки с самыми важными правилами и опасными ситуациями, которые я сам прошёл (пару раз даже выгорал, но это другая история...)
 Делюсь заметками, чтобы ты знал, как дружить с огнём и не пострадать.
 
 Что лежит в моих заметках?

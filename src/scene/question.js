@@ -46,12 +46,13 @@ const questionScene = new Scene(
     const question = ctx.message.text || ctx.message.body;
 
     try {
+      await ctx.reply('Феня думает...');
       const answer = await askAi(question, questionRequirements);
 
       await ctx.reply(answer);
       ctx.scene.leave();
       await ctx.reply(
-        'Продолжим изучение пожарной безопасности? Выбирай категорию и действуй!',
+        '🔥 Продолжим изучение пожарной безопасности? Выбирай категорию и действуй!',
         null,
         menuKeyboard()
       );
@@ -60,7 +61,7 @@ const questionScene = new Scene(
 
       ctx.scene.leave();
       await ctx.reply(
-        'Не получилось получить ответ от нейросети. Проверь AI_API_KEY и AI_BASE_URL в .env.',
+        'Феня задумалась и допустила ошибку. Запусти раздел с вопросом заново!',
         null,
         menuKeyboard()
       );
